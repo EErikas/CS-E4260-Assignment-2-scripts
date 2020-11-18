@@ -1,34 +1,43 @@
 import os
-import threading
-import time
+import sys
+import argparse
+from time import sleep
 from script import watch_videos
 
-network_interface_name = "enp4s0"
-speed = 1024
 
-
-def interrupt(speed):
+def set_speed(network_interface, speed):
     os.system(
-        'wondershaper -a {0} -d {1}'.format(network_interface_name, speed))
+        'wondershaper -a {0} -d {1}'.format(network_interface, speed))
 
 
-def restore():
-    os.system('wondershaper -a {0} -c'.format(network_interface_name))
+def restore(network_inteface):
+    os.system('wondershaper -a {0} -c'.format(network_inteface))
 
 
-# video = threading.Thread(target=watch_videos)
-# video.start()
-while True:
-    try:
-        print('Dropping down network speed to: {}'.format(speed))
-        interrupt(speed)
-        time.sleep(10)
-        print('Restoring network speed...')
-        restore()
-        time.sleep(10)
-    except KeyboardInterrupt:
-        print('Restoring network...')
-        break
+def make_interruptions(network_inteface, speed, time):
+    while True:
+        try:
+            print('Dropping down network speed to: {} Kbps'.format(speed))
+            set_speed(network_inteface, speed)
+            sleep(time)
+            print('Restoring network speed...')
+            restore(network_inteface)
+            sleep(time)
+        except KeyboardInterrupt:
+            break
+    print('Restoring network...')
+    restore(network_inteface)
+    print('Done!')
 
-restore()
-print('Done!')
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(allow_abbrev=True,
+                                     description='Set speed network speed and interval of switching\nScript requires sudo and having wondershaper installed')
+
+    parser.add_argument('-interface', type=str, help='Network interface name')
+    parser.add_argument('-speed', type=int, help='Speed in Kbps')
+    parser.add_argument('-time', type=int, help='Sleep interval')
+
+    args = parser.parse_args()
+
+    make_interruptions(args.interface, args.speed, args.time)
